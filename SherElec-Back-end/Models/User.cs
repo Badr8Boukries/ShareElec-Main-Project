@@ -11,7 +11,7 @@ namespace SherElec_Back_end.Models
         public required string Email { get; set; }
         public required string NumeroTelephone { get; set; }
         public required string MotDePasse { get; set; }
-        public double sommeEnergie { get; set; }
+        public double sommeEnergie { get; set; } = 20;
 
     }
 }
