@@ -9,24 +9,27 @@ using AutoMapper;
 using Stripe;
 using System.Linq;
 using static SherElec_Back_end.Controllers.PaymentsController;
+using SherElec_Back_end.Data;
+using SherElec_Back_end.DTOs.Request;
+using SherElec_Back_end.DTOs.Transaction;
 
 namespace SherElec_Back_end.Services
 {
     public class TransactionService : ITransactionService
     {
         private readonly ITransactionRepository _transactionRepository;
-         private readonly IUserRepository _userRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ApplicationDbContext _context;
         private readonly IOffreRepository _offreRepository;
         private readonly IMapper _mapper;
 
-         private readonly string _stripeSecretKey = "sk_test_51R4SW0PENFnTPu7Q5LkDuMRp9Cr5zMNTuSfAtJiD60FdHNF0uXTG7RXqbJZJdi2rFgzhui2DnKPM2LgyiF3Sfwuy00LjWeid04"; 
+        private readonly string _stripeSecretKey = "sk_test_51R4SW0PENFnTPu7Q5LkDuMRp9Cr5zMNTuSfAtJiD60FdHNF0uXTG7RXqbJZJdi2rFgzhui2DnKPM2LgyiF3Sfwuy00LjWeid04";
 
 
-        public TransactionService(ITransactionRepository transactionRepository,IUserRepository userRepository, ApplicationDbContext context, IOffreRepository offreRepository, IMapper mapper)
+        public TransactionService(ITransactionRepository transactionRepository, IUserRepository userRepository, ApplicationDbContext context, IOffreRepository offreRepository, IMapper mapper)
         {
             _transactionRepository = transactionRepository;
-              _userRepository = userRepository;
+            _userRepository = userRepository;
             _context = context;
             _offreRepository = offreRepository;
             _mapper = mapper;
@@ -50,14 +53,14 @@ namespace SherElec_Back_end.Services
             }
 
             // Récupérer les utilisateurs (acheteur et vendeur) même s'ils sont supprimés
-             transaction.Acheteur = await _userRepository.GetUserByIdWithDeleted(transaction.IdAcheteur);
-             transaction.Vendeur = await  _userRepository.GetUserByIdWithDeleted(transaction.IdVendeur);
-           
+            transaction.Acheteur = await _userRepository.GetUserById(transaction.IdAcheteur);
+            transaction.Vendeur = await _userRepository.GetUserById(transaction.IdVendeur);
+
 
             return transaction;
         }
 
-        public async Task CreateTransactionAsync(PaymentSuccessRequest request)
+        public async Task CreateTransactionAsync(TransactionRequest request)
         {
             using (var transactionScope = _context.Database.BeginTransaction())
             {
@@ -91,11 +94,11 @@ namespace SherElec_Back_end.Services
                     await _transactionRepository.CreateTransactionAsync(transaction);
 
                     // 4. Mettre à jour les soldes d'énergie
-                       acheteur.sommeEnergie += request.Quantite;
-                       vendeur.sommeEnergie -= request.Quantite;
+                    acheteur.sommeEnergie += request.Quantite;
+                    vendeur.sommeEnergie -= request.Quantite;
 
-                     await _userRepository.UpdateUser(acheteur);
-                     await _userRepository.UpdateUser(vendeur);
+                    await _userRepository.UpdateUser(acheteur);
+                    await _userRepository.UpdateUser(vendeur);
 
 
                     // 5. Mettre à jour le statut de l'offre (si applicable)
@@ -112,7 +115,7 @@ namespace SherElec_Back_end.Services
                             await _offreRepository.UpdateOffer(offre);
                         }
                     }
-                    
+
                     transactionScope.Commit();
                 }
                 catch (Exception ex)
@@ -124,6 +127,18 @@ namespace SherElec_Back_end.Services
             }
         }
 
-          
+        public async Task<IEnumerable<TransactionResponseDTO>> GetTransactionsVenduesAsync(int vendeurId)
+        {
+            var transactions = await _transactionRepository.GetTransactionsVenduesAsync(vendeurId);
+
+            return _mapper.Map<IEnumerable<TransactionResponseDTO>>(transactions);
+        }
+
+        public async Task<IEnumerable<TransactionResponseDTO>> GetTransactionsAcheteesAsync(int acheteurId)
+        {
+            var transactions = await _transactionRepository.GetTransactionsAcheteesAsync(acheteurId);
+
+            return _mapper.Map<IEnumerable<TransactionResponseDTO>>(transactions);
         }
     }
+}

@@ -4963,23 +4963,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Assil\\.nuget\\packages\\": {},
+    "C:\\Users\\badr4\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\ProjWeb\\ShareElec-Main-Project\\SherElec-Back-end\\SherElec-Back-end.csproj",
+      "projectUniqueName": "C:\\Users\\badr4\\OneDrive\\Bureau\\ShareElec Back\\ShareElec-Main-Project\\SherElec-Back-end\\SherElec-Back-end.csproj",
       "projectName": "SherElec-Back-end",
-      "projectPath": "D:\\ProjWeb\\ShareElec-Main-Project\\SherElec-Back-end\\SherElec-Back-end.csproj",
-      "packagesPath": "C:\\Users\\Assil\\.nuget\\packages\\",
-      "outputPath": "D:\\ProjWeb\\ShareElec-Main-Project\\SherElec-Back-end\\obj\\",
+      "projectPath": "C:\\Users\\badr4\\OneDrive\\Bureau\\ShareElec Back\\ShareElec-Main-Project\\SherElec-Back-end\\SherElec-Back-end.csproj",
+      "packagesPath": "C:\\Users\\badr4\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\badr4\\OneDrive\\Bureau\\ShareElec Back\\ShareElec-Main-Project\\SherElec-Back-end\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Assil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\badr4\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -5006,7 +5006,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.100"
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net9.0": {
@@ -5074,7 +5074,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.201/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
