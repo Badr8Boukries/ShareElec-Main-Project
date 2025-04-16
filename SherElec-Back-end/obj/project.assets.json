@@ -1052,7 +1052,7 @@
           }
         }
       },
-      "Stripe.net/47.4.0": {
+      "Stripe.net/48.0.2": {
         "type": "package",
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
@@ -3882,10 +3882,10 @@
         "packageIcon.png"
       ]
     },
-    "Stripe.net/47.4.0": {
-      "sha512": "paFQ1NFjdjd3BHkYS1qOmy7T+Bz663tgAC0unsGu7GLHrWTl5SISj6ukGB6nuycV6a1GA9VZr18eCi4pWNpE2w==",
+    "Stripe.net/48.0.2": {
+      "sha512": "Ygn4kVkhNL9acuHTYZptbbjVetagBbvbrCt3uAkeeEJgYo62xaMHGb4ljvKpeyPmGyGsLnIOqH/z6s9eh+xZug==",
       "type": "package",
-      "path": "stripe.net/47.4.0",
+      "path": "stripe.net/48.0.2",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -3906,7 +3906,7 @@
         "lib/netcoreapp3.1/Stripe.net.xml",
         "lib/netstandard2.0/Stripe.net.dll",
         "lib/netstandard2.0/Stripe.net.xml",
-        "stripe.net.47.4.0.nupkg.sha512",
+        "stripe.net.48.0.2.nupkg.sha512",
         "stripe.net.nuspec"
       ]
     },
@@ -4958,7 +4958,7 @@
       "Microsoft.EntityFrameworkCore >= 9.0.1",
       "Microsoft.EntityFrameworkCore.SqlServer >= 9.0.1",
       "Microsoft.EntityFrameworkCore.Tools >= 9.0.1",
-      "Stripe.net >= 47.4.0",
+      "Stripe.net >= 48.0.2",
       "Swashbuckle.AspNetCore >= 7.2.0"
     ]
   },
@@ -5048,7 +5048,7 @@
           },
           "Stripe.net": {
             "target": "Package",
-            "version": "[47.4.0, )"
+            "version": "[48.0.2, )"
           },
           "Swashbuckle.AspNetCore": {
             "target": "Package",

@@ -161,9 +161,6 @@ C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Ba
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.sourcelink.json
-C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.dll
-C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\refint\SherElec-Back-end.dll
-C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.pdb
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\bin\Debug\net9.0\appsettings.Development.json
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\bin\Debug\net9.0\appsettings.json
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\bin\Debug\net9.0\SherElec-Back-end.staticwebassets.endpoints.json
@@ -314,7 +311,9 @@ C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Ba
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\staticwebassets\msbuild.buildMultiTargeting.SherElec-Back-end.props
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\staticwebassets\msbuild.buildTransitive.SherElec-Back-end.props
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\staticwebassets.pack.json
-C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec.CD82CE07.Up2Date
+C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.dll
+C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\refint\SherElec-Back-end.dll
+C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.pdb
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\SherElec-Back-end.genruntimeconfig.cache
 C:\Users\badr4\OneDrive\Bureau\ShareElec Back\ShareElec-Main-Project\SherElec-Back-end\obj\Debug\net9.0\ref\SherElec-Back-end.dll

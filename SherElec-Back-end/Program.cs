@@ -38,6 +38,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOffreRepository, OffreRepository>();
 builder.Services.AddScoped<IOffreService, OffreService>();
 
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+
 // Configuration de AutoMapper
 builder.Services.AddAutoMapper(typeof(OffreMappingProfile));
 
