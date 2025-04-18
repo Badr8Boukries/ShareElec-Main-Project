@@ -66,7 +66,7 @@ namespace SherElec_Back_end.Controllers
             var transactions = await _transactionService.GetTransactionsAcheteesAsync(acheteurId);
             return Ok(transactions);
         }
-
+        
         [HttpGet("ventes")]
         [Authorize]
         public async Task<ActionResult<IEnumerable<TransactionResponseDTO>>> GetTransactionsVendues()

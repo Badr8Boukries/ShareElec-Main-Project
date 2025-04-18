@@ -46,7 +46,6 @@ namespace SherElec_Back_end.Services
                 return null;
             }
 
-            // Récupérer l'offre associée, même si l'utilisateur est supprimé
             if (transaction.OffreId.HasValue)
             {
                 transaction.Offre = await _offreRepository.GetOfferById(transaction.OffreId.Value); // Utiliser GetOfferById
@@ -62,71 +61,72 @@ namespace SherElec_Back_end.Services
 
         public async Task CreateTransactionAsync(TransactionRequest request)
         {
-            using (var transactionScope = _context.Database.BeginTransaction())
+            Console.WriteLine($"[TransactionService] Début CreateTransactionAsync pour Acheteur:{request.AcheteurId}, Vendeur:{request.VendeurId}");
+            using (var dbTransaction = await _context.Database.BeginTransactionAsync())
             {
+                Console.WriteLine("[TransactionService] Transaction DB démarrée.");
                 try
                 {
-                    // 1. Récupérer l'acheteur et le vendeur
+                    Console.WriteLine("[TransactionService] Récupération Acheteur...");
                     var acheteur = await _userRepository.GetUserById(request.AcheteurId);
+                    Console.WriteLine("[TransactionService] Récupération Vendeur...");
                     var vendeur = await _userRepository.GetUserById(request.VendeurId);
 
-                    if (acheteur == null || vendeur == null)
+                    if (acheteur == null || vendeur == null) { }
+
+
+                    Console.WriteLine($"[TransactionService] Vérification solde Vendeur {vendeur.ID}. Requis: {request.Quantite}, Disponible: {vendeur.sommeEnergie}");
+                    if (vendeur.sommeEnergie < request.Quantite)
                     {
-                        transactionScope.Rollback();
-                        throw new Exception("Acheteur ou vendeur introuvable.");
+                        await dbTransaction.RollbackAsync();
+                        Console.Error.WriteLine($"[TransactionService] ERREUR BACKEND: Solde énergie vendeur insuffisant ({vendeur.sommeEnergie} < {request.Quantite}). Rollback effectué.");
+                        throw new InvalidOperationException($"Solde vendeur insuffisant pour la transaction. Vendeur: {vendeur.ID}"); // Lance une exception pour logger l'erreur
+                                                                                                                                      // return;
                     }
 
-                    // 2. Calculer le prix unitaire
-                    double prixUnitaire = (double)request.Amount / request.Quantite;
-
-                    // 3. Créer la transaction
-                    var transaction = new Transaction
-                    {
-                        IdAcheteur = request.AcheteurId,
-                        IdVendeur = request.VendeurId,
-                        Quantite = request.Quantite,
-                        PrixUnitaire = prixUnitaire,
-                        PrixTotal = request.Amount,
-                        DateTransaction = DateTime.UtcNow,
-                        OffreId = request.OffreId
-                    };
-
-                    await _transactionRepository.CreateTransactionAsync(transaction);
-
-                    // 4. Mettre à jour les soldes d'énergie
-                    acheteur.sommeEnergie += request.Quantite;
-                    vendeur.sommeEnergie -= request.Quantite;
-
-                    await _userRepository.UpdateUser(acheteur);
-                    await _userRepository.UpdateUser(vendeur);
-
-
-                    // 5. Mettre à jour le statut de l'offre (si applicable)
+                    Offre offre = null;
                     if (request.OffreId != 0)
                     {
-                        var offre = await _offreRepository.GetOfferById(request.OffreId);
-                        if (offre != null)
+                        Console.WriteLine($"[TransactionService] Récupération Offre ID: {request.OffreId} pour validation...");
+                        offre = await _offreRepository.GetOfferById(request.OffreId);
+                        if (offre == null)
                         {
-                            offre.Quantite -= request.Quantite;
-                            if (offre.Quantite <= 0)
-                            {
-                                offre.Status = false;
-                            }
-                            await _offreRepository.UpdateOffer(offre);
+                            await dbTransaction.RollbackAsync();
+                            Console.Error.WriteLine($"[TransactionService] ERREUR BACKEND: Offre {request.OffreId} non trouvée. Rollback effectué.");
+                            throw new InvalidOperationException($"Offre {request.OffreId} spécifiée introuvable.");
+                            // return;
                         }
+                        // Vérifier si l'offre appartient bien au vendeur spécifié (sécurité supplémentaire)
+                        if (offre.UserID != request.VendeurId)
+                        {
+                            await dbTransaction.RollbackAsync();
+                            Console.Error.WriteLine($"[TransactionService] ERREUR SÉCURITÉ: L'offre {request.OffreId} n'appartient pas au vendeur {request.VendeurId}. Rollback effectué.");
+                            throw new InvalidOperationException("Incohérence entre l'offre et le vendeur.");
+                            // return;
+                        }
+                        Console.WriteLine($"[TransactionService] Vérification quantité Offre {offre.ID}. Demandé: {request.Quantite}, Disponible: {offre.Quantite}");
+                        if (!offre.Status || offre.Quantite < request.Quantite)
+                        {
+                            await dbTransaction.RollbackAsync();
+                            Console.Error.WriteLine($"[TransactionService] ERREUR BACKEND: Quantité offre insuffisante ou offre inactive (Demandé: {request.Quantite}, Disponible: {offre.Quantite}, Status: {offre.Status}). Rollback effectué.");
+                            throw new InvalidOperationException("Quantité insuffisante sur l'offre ou offre inactive.");
+                            // return;
+                        }
+                        Console.WriteLine("[TransactionService] Validation quantité offre OK.");
                     }
 
-                    transactionScope.Commit();
                 }
                 catch (Exception ex)
                 {
-                    transactionScope.Rollback();
-                    Console.WriteLine($"Erreur lors de la création de la transaction: {ex}");
-                    throw;
+                 
+                    await dbTransaction.RollbackAsync();
+                    Console.Error.WriteLine($"[TransactionService] ❌ ERREUR GLOBALE (catch): {ex}"); // Message + StackTrace
+                                                                                                     // Ne pas relancer forcément pour ne pas que Stripe réessaie indéfiniment
+                                                                                                     // Si on lance, le webhook controller devrait retourner 500.
                 }
+             
             }
         }
-
         public async Task<IEnumerable<TransactionResponseDTO>> GetTransactionsVenduesAsync(int vendeurId)
         {
             var transactions = await _transactionRepository.GetTransactionsVenduesAsync(vendeurId);
