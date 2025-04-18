@@ -199,8 +199,16 @@ namespace SherElec_Back_end.Services
                 throw new InvalidOperationException("Vous ne pouvez pas modifier votre email.");
             }
 
-            // Mapper les autres champs du DTO vers l'utilisateur
-            _mapper.Map(requestDto, user);
+            // Update only the fields that are allowed to change
+            user.Nom = requestDto.nom;
+            user.Prenom = requestDto.prenom;
+            user.NumeroTelephone = requestDto.numeroTelephone;
+
+            // Only update password if it's provided and not empty
+            if (!string.IsNullOrWhiteSpace(requestDto.motDePasse))
+            {
+                user.MotDePasse = BCrypt.Net.BCrypt.HashPassword(requestDto.motDePasse);
+            }
 
             // Mettre à jour l'utilisateur dans le repo
             await _userRepo.UpdateUser(user);

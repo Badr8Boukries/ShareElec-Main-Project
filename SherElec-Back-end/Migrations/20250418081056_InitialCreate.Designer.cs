@@ -12,7 +12,7 @@ using SherElec_Back_end.Data;
 namespace SherElec_Back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250320123656_InitialCreate")]
+    [Migration("20250418081056_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
