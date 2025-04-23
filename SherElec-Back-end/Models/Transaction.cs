@@ -35,7 +35,8 @@ namespace SherElec_Back_end.Models
         public DateTime DateTransaction { get; set; }
 
         [ForeignKey("Offre")]
-        public int? OffreId { get; set; }
+        public int? OffreId { get; set; } 
+
         public Offre? Offre { get; set; }
     }
 }
