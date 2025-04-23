@@ -1,21 +1,21 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
-
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-
 using SherElec_Back_end.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mail;
 using System.Net;
-using SherElec_Back_end.Models;
 using SherElec_Back_end.Services.Interfaces;
 using SherElec_Back_end.Repositories.Interfaces;
-using SherElec_Back_end.Data;
+using SherElec_Back_end.Data; 
 using SherElec_Back_end.DTOs.Request;
 using SherElec_Back_end.DTOs.Response;
+using System;
+using Microsoft.Extensions.Configuration; 
+using System.Linq; 
 
 namespace SherElec_Back_end.Services
 {
@@ -24,27 +24,34 @@ namespace SherElec_Back_end.Services
         private readonly IUserRepository _userRepo;
         private readonly IMapper _mapper;
         private readonly ILogger<UserService> _logger;
-        private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+       
 
-
-        public UserService(IUserRepository userRepo, IMapper mapper, ILogger<UserService> logger, ApplicationDbContext context, IConfiguration configuration)
+      
+        public UserService(IUserRepository userRepo, IMapper mapper, ILogger<UserService> logger, IConfiguration configuration)
         {
-            _userRepo = userRepo;
-            _mapper = mapper;
-            _logger = logger;
-            _context = context;
-            _configuration = configuration;
+            _userRepo = userRepo ?? throw new ArgumentNullException(nameof(userRepo));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         private string GenerateVerificationCode()
         {
             Random random = new Random();
-            return random.Next(1000, 9999).ToString();
+            return random.Next(100000, 999999).ToString(); // 6 chiffres
         }
+
         private async Task SendVerificationEmail(string email, string code)
         {
             var smtpSettings = _configuration.GetSection("SmtpSettings");
+            if (string.IsNullOrEmpty(smtpSettings["Server"]) || string.IsNullOrEmpty(smtpSettings["Port"]) ||
+                string.IsNullOrEmpty(smtpSettings["SenderEmail"]) || string.IsNullOrEmpty(smtpSettings["SenderPassword"]) ||
+                string.IsNullOrEmpty(smtpSettings["EnableSsl"]))
+            {
+                _logger.LogCritical("Configuration SMTP incomplète dans appsettings.json !");
+                throw new InvalidOperationException("La configuration SMTP est incomplète.");
+            }
 
             using var client = new SmtpClient(smtpSettings["Server"])
             {
@@ -52,189 +59,184 @@ namespace SherElec_Back_end.Services
                 Credentials = new NetworkCredential(smtpSettings["SenderEmail"], smtpSettings["SenderPassword"]),
                 EnableSsl = bool.Parse(smtpSettings["EnableSsl"])
             };
-
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(smtpSettings["SenderEmail"]),
-                Subject = "Code de vérification",
-                Body = $"Votre code de vérification est: {code} \n \n ne pas rependre a ce message ." +
-                $" \n \n Merci pour Ton inscription a notre site ",
+                From = new MailAddress(smtpSettings["SenderEmail"], smtpSettings["SenderName"]), 
+                Subject = "Code de vérification SherElec",
+                Body = $"Votre code de vérification est: {code} \n" +
+                $"ce code s'expire dans 25 min ", 
                 IsBodyHtml = false
             };
             mailMessage.To.Add(email);
-
-            await client.SendMailAsync(mailMessage);
+            await client.SendMailAsync(mailMessage); 
         }
 
         public async Task InitiateEmailVerification(UserRequestDTO req)
         {
             var existingUser = await _userRepo.GetUserByEmailAsync(req.email);
-            if (existingUser != null)
+
+            // Si l'utilisateur existe ET n'est PAS supprimé, refuser.
+            if (existingUser != null && !existingUser.IsDeleted)
             {
-                throw new InvalidOperationException("Cet email est déjà utilisé.");
+                throw new InvalidOperationException("Cet email est déjà utilisé par un compte actif.");
             }
+            // Si l'utilisateur n'existe pas OU est supprimé, on continue.
 
             string verificationCode = GenerateVerificationCode();
-
             var emailVerifier = new EmailVerifier
             {
                 Email = req.email,
                 VerificationCode = verificationCode,
                 CreatedAt = DateTime.UtcNow,
-
                 Nom = req.nom,
                 Prenom = req.prenom,
-                MotDePasse = req.motDePasse,
-                NumeroTelephone = req.numeroTelephone
+                MotDePasse = req.motDePasse, // Stockage temporaire du mdp en clair
+                NumeroTelephone = req.numeroTelephone,
+                sommeEnergie = 0 // Solde initial
             };
 
-            await _userRepo.AddEmailVerification(emailVerifier);
-            await SendVerificationEmail(req.email, verificationCode);
+            await _userRepo.AddEmailVerification(emailVerifier); // Ajoute/remplace le code en attente
+
+            try
+            {
+                await SendVerificationEmail(req.email, verificationCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Echec envoi email verification à {req.email}, mais code enregistré.");
+            }
         }
 
         public async Task<bool> VerifyEmailAndCreateUser(string email, string code)
         {
             var verification = await _userRepo.GetEmailVerification(email, code);
-
             if (verification == null)
             {
-                return false;
+                return false; // Code invalide ou expiré
             }
 
-            if (DateTime.UtcNow.Subtract(verification.CreatedAt).TotalHours > 24)
+            var existingUser = await _userRepo.GetUserByEmailAsync(email);
+
+            if (existingUser != null && existingUser.IsDeleted) // Cas: Réactivation
             {
-                return false;
+                existingUser.Nom = verification.Nom;
+                existingUser.Prenom = verification.Prenom;
+                existingUser.NumeroTelephone = verification.NumeroTelephone;
+                // Met à jour et hache le nouveau mot de passe
+                existingUser.MotDePasse = BCrypt.Net.BCrypt.HashPassword(verification.MotDePasse);
+                existingUser.IsDeleted = false; // Réactive
+                existingUser.sommeEnergie = verification.sommeEnergie; // Solde depuis vérif (0)
+
+                await _userRepo.UpdateUser(existingUser);
+            }
+            else if (existingUser == null) // Cas: Création
+            {
+                var newUser = new User
+                {
+                    Email = verification.Email,
+                    Nom = verification.Nom,
+                    Prenom = verification.Prenom,
+                    MotDePasse = verification.MotDePasse, // Sera haché par AddUser
+                    NumeroTelephone = verification.NumeroTelephone,
+                    sommeEnergie = verification.sommeEnergie,
+                    IsDeleted = false
+                };
+                await _userRepo.AddUser(newUser);
+            }
+            else // Cas: Utilisateur existe et est déjà actif (ne devrait pas arriver via ce flux)
+            {
+                _logger.LogWarning($"Tentative de vérification pour un compte ({email}) déjà actif.");
+                return false; // Échec logique
             }
 
-            // Créer l'utilisateur avec les données stockées
-            var user = new User
-            {
-                Email = verification.Email,
-                Nom = verification.Nom,
-                Prenom = verification.Prenom,
-                MotDePasse = verification.MotDePasse,
-                NumeroTelephone = verification.NumeroTelephone
-            };
-
-            await _userRepo.AddUser(user);
-
+            // Optionnel: Supprimer la vérification de la DB ici
             return true;
         }
-
-
-        public async Task ajoutCompteAsync(UserRequestDTO req)
-        {
-            // Vérification : L'email existe déjà ?
-            var existingUser = await _userRepo.GetUserByEmailAsync(req.email);
-            if (existingUser != null)
-            {
-                throw new InvalidOperationException("Cet email est déjà utilisé.");
-            }
-
-            var user = _mapper.Map<User>(req);
-
-
-            await _userRepo.AddUser(user);
-        }
-
-
+        
         public async Task<UserRespenseDTO> AuthentifierUtilisateurAsync(string email, string motDePasse)
         {
-            var utilisateur = await _context.Users
-                                            .FirstOrDefaultAsync(u => u.Email == email); // Recherche de l'utilisateur par email
+            var utilisateur = await _userRepo.GetUserByEmailAsync(email);
 
-            if (utilisateur == null)
+            // Échec si utilisateur non trouvé OU supprimé OU mot de passe incorrect
+            if (utilisateur == null || utilisateur.IsDeleted || !BCrypt.Net.BCrypt.Verify(motDePasse, utilisateur.MotDePasse))
             {
-                throw new UnauthorizedAccessException("Email ou mot de passe incorrect.");
-            }
-
-            if (!BCrypt.Net.BCrypt.Verify(motDePasse, utilisateur.MotDePasse))
-            {
-                throw new UnauthorizedAccessException("Email ou mot de passe incorrect.");
+                throw new UnauthorizedAccessException("Email ou mot de passe incorrect."); // Message générique
             }
 
             return _mapper.Map<UserRespenseDTO>(utilisateur);
         }
+       
+
         public string GenererToken(UserRespenseDTO utilisateur)
         {
+            var secret = _configuration["Jwt:Secret"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
 
-            var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("VotreClefSecreteTresLongueEtComplexe123!@#$%^&*"));
+            if (string.IsNullOrEmpty(secret) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
+            {
+                throw new InvalidOperationException("Configuration JWT incomplète.");
+            }
 
-            // Définir les informations du JWT (claims)
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var claims = new[]
             {
-            new Claim(JwtRegisteredClaimNames.Sub, utilisateur.email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("Id", utilisateur.ID.ToString())
-        };
-
-            // Créer la signature
-            var signingCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
-
-            // Créer l'objet JWT
+                new Claim(JwtRegisteredClaimNames.Sub, utilisateur.email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("Id", utilisateur.ID.ToString())
+            };
             var token = new JwtSecurityToken(
-                issuer: "TonNomDeDomaine",  // Émetteur du token
-                audience: "TonPublic",  // Public cible
-                claims: claims,  // Claims ajoutés dans le token
-                expires: DateTime.UtcNow.AddHours(1),  // Expiration dans 1 heure
-                signingCredentials: signingCredentials  // Signature du token
-            );
-
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1), 
+                signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         public async Task<UserRespenseDTO> UpdateUserAsync(int id, UserRequestDTO requestDto)
         {
-            // Récupérer l'utilisateur existant par son ID
             var user = await _userRepo.GetUserById(id);
             if (user == null)
             {
-                return null; // Utilisateur non trouvé
+                return null; 
             }
 
-            // Vérifier si l'email a été modifié
             if (user.Email != requestDto.email)
             {
                 throw new InvalidOperationException("Vous ne pouvez pas modifier votre email.");
             }
 
-            // Mapper les autres champs du DTO vers l'utilisateur
-            _mapper.Map(requestDto, user);
+            user.Nom = requestDto.nom;
+            user.Prenom = requestDto.prenom;
+            user.NumeroTelephone = requestDto.numeroTelephone;
 
-            // Mettre à jour l'utilisateur dans le repo
+            if (!string.IsNullOrWhiteSpace(requestDto.motDePasse))
+            {
+                user.MotDePasse = BCrypt.Net.BCrypt.HashPassword(requestDto.motDePasse);
+            }
+
             await _userRepo.UpdateUser(user);
 
-            // Mapper l'utilisateur mis à jour vers le DTO de réponse
             return _mapper.Map<UserRespenseDTO>(user);
         }
-
         public async Task<UserRespenseDTO> GetUserInfo(int id)
         {
             var user = await _userRepo.GetUserById(id);
 
-            if (user == null)
+            if (user == null || user.IsDeleted)
             {
-                return null;
+                return null; 
             }
 
             return _mapper.Map<UserRespenseDTO>(user);
         }
-
-
+     
         async Task IUserService.removeUser(int id)
         {
-            var user = await _userRepo.GetUserById(id);
-            if (user == null)
-            {
-                Console.WriteLine("Cet ID n'existe plus .");
-                return;
-            }
-
             await _userRepo.DeleteUser(id);
         }
-
-
-
     }
 }

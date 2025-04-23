@@ -2,6 +2,8 @@
 using SherElec_Back_end.Data;
 using SherElec_Back_end.Models;
 using SherElec_Back_end.Repositories.Interfaces;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ShareElec.Repositories
 {
@@ -16,8 +18,8 @@ namespace ShareElec.Repositories
 
         public async Task AddUser(User user)
         {
-            // Hash du mot de passe avant de l'ajouter
             user.MotDePasse = BCrypt.Net.BCrypt.HashPassword(user.MotDePasse);
+            user.IsDeleted = false;
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
         }
@@ -27,13 +29,10 @@ namespace ShareElec.Repositories
             return await _context.Users.FindAsync(id);
         }
 
-
         public async Task<User> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email); // Recherche un utilisateur avec cet email
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
-
-
 
         public async Task UpdateUser(User user)
         {
@@ -41,27 +40,35 @@ namespace ShareElec.Repositories
             await _context.SaveChangesAsync();
         }
 
-
         public async Task DeleteUser(int id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _context.Users.FindAsync(id); 
             if (user != null)
             {
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
+                user.IsDeleted = true;
+                _context.Users.Update(user); 
+                await _context.SaveChangesAsync(); 
             }
         }
 
+
         public async Task AddEmailVerification(EmailVerifier emailVerifier)
         {
+            // Optionnel mais recommandé: Supprimer les anciennes vérifications pour le même email
+            var oldVerifications = _context.EmailVerifierTable.Where(e => e.Email == emailVerifier.Email);
+            _context.EmailVerifierTable.RemoveRange(oldVerifications);
             await _context.EmailVerifierTable.AddAsync(emailVerifier);
             await _context.SaveChangesAsync();
         }
 
-
         public async Task<EmailVerifier> GetEmailVerification(string email, string code)
         {
-            return await _context.EmailVerifierTable.Where(e => e.Email == email && e.VerificationCode == code).OrderByDescending(e => e.CreatedAt).FirstOrDefaultAsync();
+            // Ajout filtre de temps pour validité 
+            var cutoff = DateTime.UtcNow.AddMinutes(-25);
+            return await _context.EmailVerifierTable
+                .Where(e => e.Email == email && e.VerificationCode == code && e.CreatedAt >= cutoff)
+                .OrderByDescending(e => e.CreatedAt)
+                .FirstOrDefaultAsync();
         }
     }
 }
