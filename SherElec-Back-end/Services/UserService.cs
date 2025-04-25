@@ -92,7 +92,7 @@ namespace SherElec_Back_end.Services
                 Prenom = req.prenom,
                 MotDePasse = req.motDePasse, // Stockage temporaire du mdp en clair
                 NumeroTelephone = req.numeroTelephone,
-                sommeEnergie = 0 // Solde initial
+                sommeEnergie = 200 // Solde initial
             };
 
             await _userRepo.AddEmailVerification(emailVerifier); // Ajoute/remplace le code en attente
