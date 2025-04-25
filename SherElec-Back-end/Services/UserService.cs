@@ -138,7 +138,7 @@ namespace SherElec_Back_end.Services
                     Prenom = verification.Prenom,
                     MotDePasse = verification.MotDePasse, // Sera haché par AddUser
                     NumeroTelephone = verification.NumeroTelephone,
-                    sommeEnergie = verification.sommeEnergie,
+                    sommeEnergie = 200,
                     IsDeleted = false
                 };
                 await _userRepo.AddUser(newUser);
